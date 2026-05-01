@@ -1,0 +1,93 @@
+// TETRIS - PRIMEIRO COMMIT (BASE)
+
+const COLUNAS = 10;
+const LINHAS = 20;
+const TAM = 30;
+
+let grade = [];
+let peca;
+let tempo = 0;
+let intervalo = 500;
+
+function setup() {
+  createCanvas(COLUNAS * TAM, LINHAS * TAM);
+
+  // cria a grade vazia
+  for (let y = 0; y < LINHAS; y++) {
+    grade[y] = [];
+    for (let x = 0; x < COLUNAS; x++) {
+      grade[y][x] = null;
+    }
+  }
+
+  novaPeca();
+}
+
+function draw() {
+  background(30);
+
+  desenhaGrade();
+  desenhaPeca();
+
+  // faz a peça cair com o tempo
+  tempo += deltaTime;
+
+  if (tempo > intervalo) {
+    tempo = 0;
+    peca.y++;
+  }
+}
+
+// cria uma peça simples (linha)
+function novaPeca() {
+  peca = {
+    x: 3,
+    y: 0,
+    cor: "cyan",
+    blocos: [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+      { x: 3, y: 0 }
+    ]
+  };
+}
+
+// desenha o fundo (grade)
+function desenhaGrade() {
+  stroke(80);
+
+  for (let y = 0; y < LINHAS; y++) {
+    for (let x = 0; x < COLUNAS; x++) {
+      fill(20);
+      rect(x * TAM, y * TAM, TAM, TAM);
+    }
+  }
+}
+
+// desenha a peça atual
+function desenhaPeca() {
+  fill(peca.cor);
+  stroke(255);
+
+  for (let bloco of peca.blocos) {
+    let x = (peca.x + bloco.x) * TAM;
+    let y = (peca.y + bloco.y) * TAM;
+    rect(x, y, TAM, TAM);
+  }
+}
+
+// controle básico
+function keyPressed() {
+  if (keyCode === LEFT_ARROW) {
+    peca.x--;
+  }
+
+  if (keyCode === RIGHT_ARROW) {
+    peca.x++;
+  }
+
+  if (keyCode === DOWN_ARROW) {
+    peca.y++;
+  }
+}
