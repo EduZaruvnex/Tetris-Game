@@ -51,6 +51,7 @@ const pecas = [
   }
 ];
 
+// Configura o canvas e inicializa a grade e a primeira peça.
 function setup() {
   createCanvas(COLUNAS * TAM, LINHAS * TAM + 50);
   let canvas = document.querySelector('canvas');
@@ -61,6 +62,7 @@ function setup() {
   novaPeca();
 }
 
+// Atualiza a tela a cada frame e controla o estado do jogo.
 function draw() {
   background(26, 26, 46);
 
@@ -96,6 +98,7 @@ function draw() {
   }
 }
 
+// Preenche a grade com células vazias.
 function iniciarGrade() {
   for (let y = 0; y < LINHAS; y++) {
     grade[y] = [];
@@ -105,6 +108,7 @@ function iniciarGrade() {
   }
 }
 
+// Mostra a tela inicial com objetivo e controles.
 function desenhaTelaInstrucoes() {
   background(26, 26, 46);
 
@@ -159,6 +163,7 @@ function desenhaTelaInstrucoes() {
   text("Pressione ENTER ou ESPAÇO para começar", width / 2, height - 30);
 }
 
+// Sorteia e cria uma nova peça no topo do tabuleiro.
 function novaPeca() {
   let modelo = random(pecas);
 
@@ -174,6 +179,7 @@ function novaPeca() {
   }
 }
 
+// Desenha o tabuleiro e os blocos já fixados.
 function desenhaGrade() {
   stroke(80);
 
@@ -190,6 +196,7 @@ function desenhaGrade() {
   }
 }
 
+// Desenha a peça atual na posição em que ela está caindo.
 function desenhaPeca() {
   fill(peca.cor);
   stroke(255);
@@ -201,6 +208,7 @@ function desenhaPeca() {
   }
 }
 
+// Exibe a pontuação e atualiza o placar na interface lateral.
 function desenhaTexto() {
   fill("white");
   noStroke();
@@ -215,6 +223,7 @@ function desenhaTexto() {
   }
 }
 
+// Move a peça se não houver colisão; fixa e gera outra quando ela encosta no chão.
 function moverPeca(dx, dy) {
   if (!colidiu(dx, dy)) {
     peca.x += dx;
@@ -226,6 +235,7 @@ function moverPeca(dx, dy) {
   }
 }
 
+// Rotaciona a peça 90 graus e desfaz a rotação se ela colidir.
 function rotacionarPeca() {
   // Salvar blocos originais
   let blocosOriginais = peca.blocos;
@@ -255,6 +265,7 @@ function rotacionarPeca() {
   }
 }
 
+// Verifica se a peça vai sair do tabuleiro ou bater em blocos fixos.
 function colidiu(dx, dy) {
   for (let bloco of peca.blocos) {
     let novoX = peca.x + bloco.x + dx;
@@ -272,6 +283,7 @@ function colidiu(dx, dy) {
   return false;
 }
 
+// Grava a peça atual na grade como parte do cenário.
 function fixarPeca() {
   for (let bloco of peca.blocos) {
     let x = peca.x + bloco.x;
@@ -283,6 +295,7 @@ function fixarPeca() {
   }
 }
 
+// Remove linhas completas e soma pontos.
 function limparLinhas() {
   for (let y = LINHAS - 1; y >= 0; y--) {
     let cheia = true;
@@ -308,6 +321,7 @@ function limparLinhas() {
   }
 }
 
+// Trata os controles do teclado para iniciar, reiniciar, mover e rotacionar.
 function keyPressed() {
   if (!jogoIniciado) {
     if (keyCode === ENTER || key === " ") {
