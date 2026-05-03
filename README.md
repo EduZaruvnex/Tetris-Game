@@ -1,8 +1,8 @@
 # Tetris-Game
 Jogo simples do tetris para o trabalho da matéria de web development.
 
-# Criado pelos alunos 
-Eduardo Zaruvne Santos
+# Criado pelos alunos
+Eduardo Zaruvne Santos  
 Ryan Gabriel Skalecki Marques
 
 ## Instruções de uso
