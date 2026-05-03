@@ -53,6 +53,8 @@ const pecas = [
 
 function setup() {
   createCanvas(COLUNAS * TAM, LINHAS * TAM + 50);
+  let canvas = document.querySelector('canvas');
+  document.getElementById('canvas-container').appendChild(canvas);
   textFont("Arial");
 
   iniciarGrade();
@@ -60,7 +62,7 @@ function setup() {
 }
 
 function draw() {
-  background(30);
+  background(26, 26, 46);
 
   if (!jogoIniciado) {
     desenhaTelaInstrucoes();
@@ -72,10 +74,17 @@ function draw() {
   desenhaTexto();
 
   if (fimDeJogo) {
-    fill("red");
-    textSize(32);
+    fill(255, 100, 100);
+    textSize(36);
+    textStyle(BOLD);
     textAlign(CENTER);
-    text("FIM DE JOGO", width / 2, height / 2);
+    text("FIM DE JOGO", width / 2, height / 2 - 30);
+    
+    fill(255);
+    textSize(18);
+    textStyle(NORMAL);
+    text("Pontos: " + pontos, width / 2, height / 2 + 20);
+    text("Pressione ENTER para reiniciar", width / 2, height / 2 + 50);
     return;
   }
 
@@ -97,34 +106,57 @@ function iniciarGrade() {
 }
 
 function desenhaTelaInstrucoes() {
-  background(18, 18, 28);
+  background(26, 26, 46);
 
-  fill("cyan");
-  textSize(42);
+  fill(0, 212, 255);
+  textSize(48);
+  textStyle(BOLD);
   textAlign(CENTER);
-  text("TETRIS", width / 2, 95);
+  text("TETRIS", width / 2, 60);
 
-  fill("white");
-  textSize(18);
-  text("Instruções", width / 2, 145);
+  fill(200, 200, 255);
+  textSize(14);
+  textStyle(NORMAL);
+  text("Clássico Jogo de Blocos", width / 2, 90);
 
-  textSize(15);
-  textAlign(LEFT);
-  text("Objetivo:", 35, 205);
-  text("Complete linhas horizontais para ganhar pontos.", 35, 230);
-
-  text("Controles:", 35, 285);
-  text("←  Move a peça para a esquerda", 35, 310);
-  text("→  Move a peça para a direita", 35, 335);
-  text("↓  Acelera a queda da peça", 35, 360);
-
-  text("Pontuação:", 35, 415);
-  text("Cada linha completa vale 100 pontos.", 35, 440);
-
-  textAlign(CENTER);
-  fill("yellow");
+  fill(255);
   textSize(16);
-  text("Pressione ENTER ou ESPAÇO para começar", width / 2, 535);
+  textStyle(BOLD);
+  textAlign(LEFT);
+  text("OBJETIVO:", 30, 150);
+  
+  fill(220, 220, 220);
+  textSize(13);
+  textStyle(NORMAL);
+  text("Complete linhas horizontais para ganhar pontos", 50, 180);
+
+  fill(255);
+  textSize(16);
+  textStyle(BOLD);
+  text("CONTROLES:", 30, 240);
+
+  fill(220, 220, 220);
+  textSize(13);
+  textStyle(NORMAL);
+  text("← →  Mover", 50, 270);
+  text("↓    Descer", 50, 295);
+  text("W ou ↑  Rotacionar", 50, 320);
+
+  fill(255);
+  textSize(16);
+  textStyle(BOLD);
+  text("PONTUAÇÃO:", 30, 380);
+
+  fill(220, 220, 220);
+  textSize(13);
+  textStyle(NORMAL);
+  text("Cada linha = 100 pontos", 50, 410);
+
+  fill(0, 255, 136);
+  textSize(16);
+  textStyle(BOLD);
+  textAlign(CENTER);
+  text("Pressione ENTER ou ESPAÇO para começar", width / 2, height - 30);
 }
 
 function novaPeca() {
@@ -175,6 +207,12 @@ function desenhaTexto() {
   textSize(18);
   textAlign(LEFT);
   text("Pontos: " + pontos, 10, LINHAS * TAM + 30);
+  
+  // Atualizar score no sidebar
+  let scoreElement = document.getElementById('score');
+  if (scoreElement) {
+    scoreElement.textContent = 'Pontos: ' + pontos;
+  }
 }
 
 function moverPeca(dx, dy) {
@@ -185,6 +223,35 @@ function moverPeca(dx, dy) {
     fixarPeca();
     limparLinhas();
     novaPeca();
+  }
+}
+
+function rotacionarPeca() {
+  // Salvar blocos originais
+  let blocosOriginais = peca.blocos;
+  
+  // Rotacionar 90 graus no sentido horário
+  let novosBlocos = [];
+  for (let bloco of blocosOriginais) {
+    // Rotação: (x, y) -> (-y, x)
+    let novoX = -bloco.y;
+    let novoY = bloco.x;
+    novosBlocos.push({ x: novoX, y: novoY });
+  }
+  
+  // Normalizar posição (ajustar para o canto superior esquerdo)
+  let minX = Math.min(...novosBlocos.map(b => b.x));
+  let minY = Math.min(...novosBlocos.map(b => b.y));
+  
+  novosBlocos = novosBlocos.map(bloco => ({
+    x: bloco.x - minX,
+    y: bloco.y - minY
+  }));
+  
+  // Testar colisão com os novos blocos
+  peca.blocos = novosBlocos;
+  if (colidiu(0, 0)) {
+    peca.blocos = blocosOriginais;
   }
 }
 
@@ -247,11 +314,20 @@ function keyPressed() {
       jogoIniciado = true;
       tempo = 0;
     }
-
     return;
   }
 
   if (fimDeJogo) {
+    if (keyCode === ENTER || key === " ") {
+      // Reiniciar o jogo
+      jogoIniciado = false;
+      fimDeJogo = false;
+      pontos = 0;
+      tempo = 0;
+      intervalo = 500;
+      iniciarGrade();
+      novaPeca();
+    }
     return;
   }
 
@@ -265,5 +341,10 @@ function keyPressed() {
 
   if (keyCode === DOWN_ARROW) {
     moverPeca(0, 1);
+  }
+  
+  // Rotação com W ou UP_ARROW
+  if (key.toUpperCase() === 'W' || keyCode === UP_ARROW) {
+    rotacionarPeca();
   }
 }

@@ -2,9 +2,94 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tetris Game</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    
+    h1 {
+      color: #00d4ff;
+      margin-bottom: 10px;
+      text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+      letter-spacing: 3px;
+    }
+    
+    #container {
+      display: flex;
+      gap: 30px;
+      align-items: flex-start;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    canvas {
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      background: #1a1a2e;
+      display: block;
+    }
+    
+    .info {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      padding: 20px;
+      border-radius: 8px;
+      color: white;
+      min-width: 200px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .score {
+      font-size: 24px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .controls {
+      font-size: 13px;
+      line-height: 1.8;
+      text-align: center;
+      opacity: 0.9;
+    }
+    
+    .controls p {
+      margin: 8px 0;
+    }
+  </style>
 </head>
 <body>
+  <h1>TETRIS</h1>
+  
+  <div id="container">
+    <div id="canvas-container"></div>
+    
+    <div class="info">
+      <div class="score" id="score">Pontos: 0</div>
+      <div class="controls">
+        <p><strong>Controles:</strong></p>
+        <p>← → Mover</p>
+        <p>↓ Descer</p>
+        <p>W ou ↑ Rotacionar</p>
+        <p>ENTER Começar</p>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
   <script src="Base-Tetris.js"></script>
 </body>
