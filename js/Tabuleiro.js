@@ -48,15 +48,18 @@ class Tabuleiro {
     }
   }
 
-  // Remove as linhas completas e retorna { quantidade, linhas: [...] }
-  // com os indices (y) das linhas removidas, para gerar particulas.
+  // Remove as linhas completas e retorna
+  // { quantidade, linhas: [ { y, cores: [...] }, ... ] }
+  // onde cada item guarda a posicao e as cores da linha removida.
   limparLinhas() {
     const removidas = [];
 
     for (let y = this.linhas - 1; y >= 0; y--) {
       const cheia = this.grade[y].every(celula => celula !== null);
       if (cheia) {
-        removidas.push(y);
+        // Guarda a posicao e as cores da linha ANTES de remove-la,
+        // para o gerarParticulas() poder criar as particulas coloridas.
+        removidas.push({ y: y, cores: this.grade[y].slice() });
         this.grade.splice(y, 1);
         // Adiciona uma linha vazia no topo.
         const novaLinha = new Array(this.colunas).fill(null);
