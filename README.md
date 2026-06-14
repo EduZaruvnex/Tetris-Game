@@ -46,16 +46,10 @@ Tetris-Game/
 O projeto é dividido em duas partes:
 
 - **Jogo (front-end):** arquivos estáticos (HTML/JS) publicados no **GitHub Pages**.
-- **API (ranking):** os arquivos da pasta `hostinger/` rodam na **Hostinger** (que executa PHP) e acessam o MySQL.
+- **API (ranking):** Roda na **Hostinger** (que executa PHP) e acessam o MySQL.
 
 O front-end chama a API pela constante `API_BASE`, definida no início do `Base-Tetris.js`.
 
-### Publicar a API (Hostinger)
-
-1. Envie os arquivos da pasta `hostinger/` para a pasta do site na Hostinger.
-2. No servidor, crie o `.env` a partir do `.env.example` com as credenciais do MySQL (`DB_HOST=localhost`).
-3. Importe o `banco.sql` no banco (uma vez) para criar a tabela `pontuacoes`.
-4. Garanta que o domínio da API tenha **HTTPS** ativo (o GitHub Pages é HTTPS).
 
 ### Rodar o jogo localmente
 
