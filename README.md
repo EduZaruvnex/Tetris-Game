@@ -1,4 +1,6 @@
 # Tetris-Game
+Jogavel atravez do link
+https://eduzaruvnex.github.io/Tetris-Game/
 
 Jogo do Tetris feito em **JavaScript (p5.js)** com placar online em **PHP + MySQL**, para o trabalho da matéria de Web Development.
 
