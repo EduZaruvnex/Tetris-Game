@@ -29,7 +29,7 @@ Jogo do Tetris feito em **JavaScript (p5.js)** com placar online em **PHP + MySQ
 ```
 Tetris-Game/
 ├── index.html              Página principal (canvas + campo de nome)
-├── Base-Tetris.js          Sketch principal: telas, entrada e comunicação com o banco
+├── Base-Tetris.js          Sketch principal: telas, entrada e chamadas à API
 ├── js/
 │   ├── pecas.js            Os 7 tetrominós (vetor de formas)
 │   ├── fases.js            Configuração de cada fase (dificuldade)
@@ -37,25 +37,29 @@ Tetris-Game/
 │   ├── Tabuleiro.js        Classe Tabuleiro (grade, colisão, limpar linhas)
 │   ├── Particula.js        Classe Particula (efeito ao limpar linha)
 │   └── Jogo.js             Classe Jogo (score, vidas, nível, fila, efeitos)
-├── api/
-│   ├── ranking.php         Devolve o ranking (separado por modo) em JSON
-│   └── salvar_pontuacao.php Grava a pontuação no fim da partida
-├── db.php                  Conexão com o banco (lê o .env ou variáveis de ambiente)
+├── Sons/                   Efeitos sonoros e música
 ├── banco.sql               Script de criação da tabela de pontuações
-├── .env                    Credenciais do banco (NÃO versionado)
-├── .env.example            Modelo de configuração do banco
-└── Sons/                   Efeitos sonoros e música
 ```
 
-## Como executar
+## Hospedagem
 
-1. Coloque o projeto na pasta `htdocs` do **XAMPP** e inicie o **Apache**.
-2. Configure o banco de dados:
-   - Copie `.env.example` para `.env` e preencha com suas credenciais MySQL.
-   - Importe o `banco.sql` no seu banco (ex.: pelo phpMyAdmin) para criar a tabela `pontuacoes`.
-3. Abra no navegador: `http://localhost/Tetris-Game/`.
+O projeto é dividido em duas partes:
 
-> Em produção / GitHub Actions, as credenciais são lidas de **variáveis de ambiente** (GitHub Secrets), sem precisar do arquivo `.env`.
+- **Jogo (front-end):** arquivos estáticos (HTML/JS) publicados no **GitHub Pages**.
+- **API (ranking):** os arquivos da pasta `hostinger/` rodam na **Hostinger** (que executa PHP) e acessam o MySQL.
+
+O front-end chama a API pela constante `API_BASE`, definida no início do `Base-Tetris.js`.
+
+### Publicar a API (Hostinger)
+
+1. Envie os arquivos da pasta `hostinger/` para a pasta do site na Hostinger.
+2. No servidor, crie o `.env` a partir do `.env.example` com as credenciais do MySQL (`DB_HOST=localhost`).
+3. Importe o `banco.sql` no banco (uma vez) para criar a tabela `pontuacoes`.
+4. Garanta que o domínio da API tenha **HTTPS** ativo (o GitHub Pages é HTTPS).
+
+### Rodar o jogo localmente
+
+Abra o `index.html` em um servidor local (ex.: **XAMPP**) ou direto no navegador. O ranking usa a API que está na Hostinger.
 
 ## Controles
 

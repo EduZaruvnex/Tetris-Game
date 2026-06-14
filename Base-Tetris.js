@@ -37,6 +37,9 @@ let ranking = null;         // ranking por modo: { "1": [...], "3": [...] }
 let rankingCarregado = false;
 let pontuacaoSalva = false;
 
+// ----- API do ranking (PHP na Hostinger) --------------------
+const API_BASE = "https://tetris.clonacartao.online";
+
 // ----- Sons (HTML5 Audio) -----------------------------------
 const ARQUIVOS_SOM = {
   inicio:   "Sons/game-start.mp3",
@@ -550,7 +553,7 @@ function carregarRanking() {
   rankingCarregado = false;
   ranking = null;
 
-  fetch("api/ranking.php")
+  fetch(API_BASE + "/ranking.php")
     .then(resposta => resposta.json())
     .then(dados => {
       ranking = dados; // { "1": [...], "3": [...] }
@@ -569,7 +572,7 @@ function salvarPontuacao() {
     nome = "JOGADOR"; // seguranca extra; o nome ja e exigido no menu
   }
 
-  fetch("api/salvar_pontuacao.php", {
+  fetch(API_BASE + "/salvar_pontuacao.php", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
