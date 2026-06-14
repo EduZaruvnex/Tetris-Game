@@ -1,364 +1,585 @@
-// TETRIS SIMPLES - p5.js
+// ============================================================
+//  Base-Tetris.js  —  Sketch principal (p5.js)
+//
+//  Controla a MAQUINA DE ESTADOS das telas:
+//    MENU -> SOBRE / RANKING / JOGANDO -> GAMEOVER -> MENU
+//
+//  As classes do jogo ficam na pasta js/ (Peca, Tabuleiro,
+//  Particula e Jogo). Aqui cuidamos das telas, da entrada do
+//  teclado/mouse e da comunicacao com o banco (ranking).
+// ============================================================
 
+// ----- Constantes do tabuleiro ------------------------------
 const COLUNAS = 10;
 const LINHAS = 20;
 const TAM = 30;
+const LARGURA_PAINEL = 180;
+const LARGURA = COLUNAS * TAM + LARGURA_PAINEL; // 480
+const ALTURA = LINHAS * TAM;                    // 600
 
-let grade = [];
-let peca;
-let tempo = 0;
-let intervalo = 500;
-let pontos = 0;
-let fimDeJogo = false;
-let jogoIniciado = false;
-
-const pecas = [
-  {
-    cor: "cyan",
-    blocos: [
-      { x: 0, y: 0 },
-      { x: 1, y: 0 },
-      { x: 2, y: 0 },
-      { x: 3, y: 0 }
-    ]
-  },
-  {
-    cor: "yellow",
-    blocos: [
-      { x: 0, y: 0 },
-      { x: 1, y: 0 },
-      { x: 0, y: 1 },
-      { x: 1, y: 1 }
-    ]
-  },
-  {
-    cor: "orange",
-    blocos: [
-      { x: 0, y: 0 },
-      { x: 0, y: 1 },
-      { x: 1, y: 1 },
-      { x: 2, y: 1 }
-    ]
-  },
-  {
-    cor: "purple",
-    blocos: [
-      { x: 1, y: 0 },
-      { x: 0, y: 1 },
-      { x: 1, y: 1 },
-      { x: 2, y: 1 }
-    ]
-  }
+// ----- Participantes do trabalho ----------
+const PARTICIPANTES = [
+  "Eduardo Zaruvne Santos ",
+  "Ryan Gabriel Skalecki Marques"
 ];
 
-// Configura o canvas e inicializa a grade e a primeira peça.
+// ----- Opcoes do menu (vetor de strings) --------------------
+const OPCOES_MENU = ["JOGAR - 1 VIDA", "JOGAR - 3 VIDAS", "SOBRE", "RANKING"];
+
+// ----- Estado global ----------------------------------------
+let estado = "MENU";        // MENU | SOBRE | RANKING | JOGANDO | GAMEOVER
+let opcaoSelecionada = 0;
+let jogo;
+let modoAtual = 3;          // quantas vidas tem a partida atual (1 ou 3)
+let mensagemMenu = "";      // aviso no menu (ex.: nome obrigatorio)
+
+let ranking = null;         // ranking por modo: { "1": [...], "3": [...] }
+let rankingCarregado = false;
+let pontuacaoSalva = false;
+
+// ----- Sons (HTML5 Audio) -----------------------------------
+const ARQUIVOS_SOM = {
+  inicio:   "Sons/game-start.mp3",
+  linha:    "Sons/LinhaCompletada.mp3",
+  gameover: "Sons/Gameover.mp3"
+};
+
+let musicaAmbiente = null;      // Audio em loop (musica de fundo)
+let volumeGeral = 0.5;          // 0 a 1 (controlado pela barra de volume)
+let mutarMusica = false;        // muta so a musica de fundo
+let mutarTudo = false;          // muta todos os sons
+let temporizadorMusica = null;  // atraso para iniciar a musica de fundo
+
+// ============================================================
+//  Sons (HTML5 Audio)
+// ============================================================
+
+// Volume dos efeitos: zero se "mutar tudo" estiver ligado.
+function volumeEfeitos() {
+  return mutarTudo ? 0 : volumeGeral;
+}
+
+// Volume da musica: zero se "mutar tudo" ou "mutar musica" estiver ligado.
+// A musica fica um pouco mais baixa que os efeitos (60%).
+function volumeMusica() {
+  return (mutarTudo || mutarMusica) ? 0 : volumeGeral * 0.6;
+}
+
+// Toca um efeito sonoro. Cria um novo Audio a cada chamada para
+// permitir que os efeitos se sobreponham.
+function tocarSom(nome) {
+  const caminho = ARQUIVOS_SOM[nome];
+  if (!caminho) {
+    return;
+  }
+  const efeito = new Audio(caminho);
+  efeito.volume = volumeEfeitos();
+  efeito.play().catch(() => {}); // ignora bloqueio de autoplay do navegador
+}
+
+// Inicia (ou reinicia) a musica de fundo em loop.
+function iniciarMusica() {
+  if (!musicaAmbiente) {
+    musicaAmbiente = new Audio("Sons/SomAmbiente.mp3");
+    musicaAmbiente.loop = true;
+  }
+  musicaAmbiente.volume = volumeMusica();
+  musicaAmbiente.currentTime = 0;
+  musicaAmbiente.play().catch(() => {});
+}
+
+function pararMusica() {
+  clearTimeout(temporizadorMusica); // cancela uma musica que ainda ia comecar
+  if (musicaAmbiente) {
+    musicaAmbiente.pause();
+    musicaAmbiente.currentTime = 0;
+  }
+}
+
+// Aplica o volume da musica que ja esta tocando (ao mexer nos controles).
+function atualizarAudio() {
+  if (musicaAmbiente) {
+    musicaAmbiente.volume = volumeMusica();
+  }
+}
+
+// Para a partida atual e volta para o menu principal.
+function voltarAoMenu() {
+  pararMusica();
+  mensagemMenu = "";
+  pontuacaoSalva = false;
+  estado = "MENU";
+}
+
+// Liga o botao "Voltar ao menu" do HTML.
+function configurarBotaoMenu() {
+  const btn = document.getElementById("btnMenu");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      liberarAudio();
+      voltarAoMenu();
+      btn.blur(); // tira o foco para o ENTER nao reativar o botao
+    });
+  }
+}
+
+// Liga os controles de audio do HTML (checkboxes e barra de volume).
+function configurarControlesAudio() {
+  const barraVolume = document.getElementById("volume");
+  const chkMusica = document.getElementById("mutarMusica");
+  const chkTudo = document.getElementById("mutarTudo");
+
+  if (barraVolume) {
+    volumeGeral = barraVolume.value / 100;
+    barraVolume.addEventListener("input", () => {
+      liberarAudio();
+      volumeGeral = barraVolume.value / 100;
+      atualizarAudio();
+    });
+  }
+
+  if (chkMusica) {
+    chkMusica.addEventListener("change", () => {
+      liberarAudio();
+      mutarMusica = chkMusica.checked;
+      atualizarAudio();
+    });
+  }
+
+  if (chkTudo) {
+    chkTudo.addEventListener("change", () => {
+      liberarAudio();
+      mutarTudo = chkTudo.checked;
+      atualizarAudio();
+    });
+  }
+}
+
+// Mantida por compatibilidade. Com HTML5 Audio nao e preciso liberar
+// o audio manualmente: o navegador libera apos a primeira interacao.
+function liberarAudio() {}
+
+// ============================================================
+//  setup / draw
+// ============================================================
 function setup() {
-  createCanvas(COLUNAS * TAM, LINHAS * TAM + 50);
-  let canvas = document.querySelector('canvas');
-  document.getElementById('canvas-container').appendChild(canvas);
+  const canvas = createCanvas(LARGURA, ALTURA);
+  canvas.parent("canvas-container");
   textFont("Arial");
-
-  iniciarGrade();
-  novaPeca();
+  jogo = new Jogo();
+  configurarControlesAudio();
+  configurarBotaoMenu();
 }
 
-// Atualiza a tela a cada frame e controla o estado do jogo.
 function draw() {
-  background(26, 26, 46);
-
-  if (!jogoIniciado) {
-    desenhaTelaInstrucoes();
-    return;
-  }
-
-  desenhaGrade();
-  desenhaPeca();
-  desenhaTexto();
-
-  if (fimDeJogo) {
-    fill(255, 100, 100);
-    textSize(36);
-    textStyle(BOLD);
-    textAlign(CENTER);
-    text("FIM DE JOGO", width / 2, height / 2 - 30);
-    
-    fill(255);
-    textSize(18);
-    textStyle(NORMAL);
-    text("Pontos: " + pontos, width / 2, height / 2 + 20);
-    text("Pressione ENTER para reiniciar", width / 2, height / 2 + 50);
-    return;
-  }
-
-  tempo += deltaTime;
-
-  if (tempo > intervalo) {
-    tempo = 0;
-    moverPeca(0, 1);
+  switch (estado) {
+    case "MENU":     telaMenu();     break;
+    case "SOBRE":    telaSobre();    break;
+    case "RANKING":  telaRanking();  break;
+    case "JOGANDO":  telaJogo();     break;
+    case "GAMEOVER": telaGameOver(); break;
   }
 }
 
-// Preenche a grade com células vazias.
-function iniciarGrade() {
-  for (let y = 0; y < LINHAS; y++) {
-    grade[y] = [];
-    for (let x = 0; x < COLUNAS; x++) {
-      grade[y][x] = null;
-    }
-  }
-}
+// ============================================================
+//  TELAS
+// ============================================================
 
-// Mostra a tela inicial com objetivo e controles.
-function desenhaTelaInstrucoes() {
+// ----- Menu de abertura -------------------------------------
+function telaMenu() {
   background(26, 26, 46);
 
-  fill(0, 212, 255);
-  textSize(48);
+  // Titulo
+  textAlign(CENTER, CENTER);
   textStyle(BOLD);
-  textAlign(CENTER);
-  text("TETRIS", width / 2, 60);
+  fill(0, 212, 255);
+  textSize(64);
+  text("TETRIS", LARGURA / 2, 110);
 
   fill(200, 200, 255);
+  textStyle(NORMAL);
   textSize(14);
-  textStyle(NORMAL);
-  text("Clássico Jogo de Blocos", width / 2, 90);
+  text("Trabalho de Programacao", LARGURA / 2, 160);
 
-  fill(255);
-  textSize(16);
-  textStyle(BOLD);
-  textAlign(LEFT);
-  text("OBJETIVO:", 30, 150);
-  
-  fill(220, 220, 220);
+  // O mouse por cima de uma opcao ja a seleciona (usabilidade).
+  for (let i = 0; i < OPCOES_MENU.length; i++) {
+    const r = retanguloOpcao(i);
+    if (mouseEmCima(r)) {
+      opcaoSelecionada = i;
+    }
+  }
+
+  // Desenha as opcoes
+  for (let i = 0; i < OPCOES_MENU.length; i++) {
+    const r = retanguloOpcao(i);
+    const selecionada = i === opcaoSelecionada;
+
+    noStroke();
+    fill(selecionada ? color(0, 212, 255) : color(255, 255, 255, 30));
+    rect(r.x, r.y, r.w, r.h, 8);
+
+    fill(selecionada ? color(20, 20, 40) : color(255));
+    textStyle(BOLD);
+    textSize(22);
+    text(OPCOES_MENU[i], LARGURA / 2, r.y + r.h / 2);
+  }
+
+  // Aviso (ex.: nome obrigatorio para jogar)
+  if (mensagemMenu !== "") {
+    fill(255, 90, 90);
+    textStyle(BOLD);
+    textSize(15);
+    text(mensagemMenu, LARGURA / 2, ALTURA - 58);
+  }
+
+  fill(150, 150, 200);
+  textStyle(NORMAL);
   textSize(13);
-  textStyle(NORMAL);
-  text("Complete linhas horizontais para ganhar pontos", 50, 180);
+  text("Use as setas e ENTER, ou clique com o mouse", LARGURA / 2, ALTURA - 30);
+}
 
-  fill(255);
-  textSize(16);
+// ----- Tela Sobre -------------------------------------------
+function telaSobre() {
+  background(26, 26, 46);
+
+  textAlign(CENTER, TOP);
   textStyle(BOLD);
-  text("CONTROLES:", 30, 240);
+  fill(0, 212, 255);
+  textSize(40);
+  text("SOBRE", LARGURA / 2, 50);
 
-  fill(220, 220, 220);
-  textSize(13);
+  fill(220, 220, 230);
   textStyle(NORMAL);
-  text("← →  Mover", 50, 270);
-  text("↓    Descer", 50, 295);
-  text("W ou ↑  Rotacionar", 50, 320);
-
-  fill(255);
-  textSize(16);
-  textStyle(BOLD);
-  text("PONTUAÇÃO:", 30, 380);
-
-  fill(220, 220, 220);
-  textSize(13);
-  textStyle(NORMAL);
-  text("Cada linha = 100 pontos", 50, 410);
+  textSize(15);
+  text("Tetris feito em JavaScript com a biblioteca p5.js.", LARGURA / 2, 120);
+  text("Complete linhas, suba de fase e marque pontos!", LARGURA / 2, 145);
 
   fill(0, 255, 136);
-  textSize(16);
   textStyle(BOLD);
-  textAlign(CENTER);
-  text("Pressione ENTER ou ESPAÇO para começar", width / 2, height - 30);
-}
+  textSize(20);
+  text("Participantes", LARGURA / 2, 220);
 
-// Sorteia e cria uma nova peça no topo do tabuleiro.
-function novaPeca() {
-  let modelo = random(pecas);
-
-  peca = {
-    x: 3,
-    y: 0,
-    cor: modelo.cor,
-    blocos: modelo.blocos
-  };
-
-  if (colidiu(0, 0)) {
-    fimDeJogo = true;
+  // Lista os nomes percorrendo o vetor PARTICIPANTES.
+  fill(255);
+  textStyle(NORMAL);
+  textSize(17);
+  for (let i = 0; i < PARTICIPANTES.length; i++) {
+    text(PARTICIPANTES[i], LARGURA / 2, 260 + i * 32);
   }
+
+  fill(150, 150, 200);
+  textSize(13);
+  text("Pressione ENTER ou ESC para voltar", LARGURA / 2, ALTURA - 30);
 }
 
-// Desenha o tabuleiro e os blocos já fixados.
-function desenhaGrade() {
-  stroke(80);
+// ----- Tela de Ranking (dados do banco, separados por modo) -
+function telaRanking() {
+  background(26, 26, 46);
 
-  for (let y = 0; y < LINHAS; y++) {
-    for (let x = 0; x < COLUNAS; x++) {
-      if (grade[y][x] !== null) {
-        fill(grade[y][x]);
-      } else {
-        fill(20);
-      }
+  textAlign(CENTER, TOP);
+  textStyle(BOLD);
+  fill(255, 215, 0);
+  textSize(36);
+  text("RANKING", LARGURA / 2, 28);
 
-      rect(x * TAM, y * TAM, TAM, TAM);
-    }
+  if (!rankingCarregado) {
+    fill(200);
+    textStyle(NORMAL);
+    textSize(16);
+    text("Carregando...", LARGURA / 2, ALTURA / 2);
+  } else if (ranking === null) {
+    fill(255, 120, 120);
+    textStyle(NORMAL);
+    textSize(15);
+    text("Sem conexao com o banco de dados.", LARGURA / 2, ALTURA / 2 - 10);
+    textSize(12);
+    text("Verifique o .env e o acesso ao MySQL.", LARGURA / 2, ALTURA / 2 + 18);
+  } else {
+    // Duas colunas: cada modo tem seu proprio ranking.
+    desenharColunaRanking("1 VIDA", ranking["1"] || [], 30);
+    desenharColunaRanking("3 VIDAS", ranking["3"] || [], LARGURA / 2 + 10);
   }
+
+  fill(150, 150, 200);
+  textAlign(CENTER, TOP);
+  textStyle(NORMAL);
+  textSize(13);
+  text("Pressione ENTER ou ESC para voltar", LARGURA / 2, ALTURA - 28);
 }
 
-// Desenha a peça atual na posição em que ela está caindo.
-function desenhaPeca() {
-  fill(peca.cor);
-  stroke(255);
+// Desenha uma coluna de ranking a partir de x0.
+function desenharColunaRanking(titulo, lista, x0) {
+  const larguraCol = LARGURA / 2 - 40;
 
-  for (let bloco of peca.blocos) {
-    let x = (peca.x + bloco.x) * TAM;
-    let y = (peca.y + bloco.y) * TAM;
-    rect(x, y, TAM, TAM);
-  }
-}
-
-// Exibe a pontuação e atualiza o placar na interface lateral.
-function desenhaTexto() {
-  fill("white");
-  noStroke();
+  textAlign(CENTER, TOP);
+  textStyle(BOLD);
   textSize(18);
-  textAlign(LEFT);
-  text("Pontos: " + pontos, 10, LINHAS * TAM + 30);
-  
-  // Atualizar score no sidebar
-  let scoreElement = document.getElementById('score');
-  if (scoreElement) {
-    scoreElement.textContent = 'Pontos: ' + pontos;
+  fill(0, 212, 255);
+  text(titulo, x0 + larguraCol / 2, 84);
+
+  if (lista.length === 0) {
+    fill(160);
+    textStyle(NORMAL);
+    textSize(13);
+    text("sem registros", x0 + larguraCol / 2, 130);
+    return;
+  }
+
+  for (let i = 0; i < lista.length; i++) {
+    const linha = lista[i];
+    const y = 124 + i * 34;
+
+    fill(i === 0 ? color(255, 215, 0) : color(255));
+    textStyle(BOLD);
+    textSize(14);
+    textAlign(LEFT, TOP);
+    text((i + 1) + ". " + encurtar(linha.nome_jogador, 9), x0, y);
+
+    textAlign(RIGHT, TOP);
+    text(linha.pontos, x0 + larguraCol, y);
   }
 }
 
-// Move a peça se não houver colisão; fixa e gera outra quando ela encosta no chão.
-function moverPeca(dx, dy) {
-  if (!colidiu(dx, dy)) {
-    peca.x += dx;
-    peca.y += dy;
-  } else if (dy === 1) {
-    fixarPeca();
-    limparLinhas();
-    novaPeca();
-  }
+// Corta nomes muito longos para caber na coluna.
+function encurtar(texto, max) {
+  return texto.length > max ? texto.substring(0, max) + "." : texto;
 }
 
-// Rotaciona a peça 90 graus e desfaz a rotação se ela colidir.
-function rotacionarPeca() {
-  // Salvar blocos originais
-  let blocosOriginais = peca.blocos;
-  
-  // Rotacionar 90 graus no sentido horário
-  let novosBlocos = [];
-  for (let bloco of blocosOriginais) {
-    // Rotação: (x, y) -> (-y, x)
-    let novoX = -bloco.y;
-    let novoY = bloco.x;
-    novosBlocos.push({ x: novoX, y: novoY });
-  }
-  
-  // Normalizar posição (ajustar para o canto superior esquerdo)
-  let minX = Math.min(...novosBlocos.map(b => b.x));
-  let minY = Math.min(...novosBlocos.map(b => b.y));
-  
-  novosBlocos = novosBlocos.map(bloco => ({
-    x: bloco.x - minX,
-    y: bloco.y - minY
-  }));
-  
-  // Testar colisão com os novos blocos
-  peca.blocos = novosBlocos;
-  if (colidiu(0, 0)) {
-    peca.blocos = blocosOriginais;
-  }
-}
+// ----- Tela de jogo -----------------------------------------
+function telaJogo() {
+  background(jogo.corFundoAtual()[0], jogo.corFundoAtual()[1], jogo.corFundoAtual()[2]);
 
-// Verifica se a peça vai sair do tabuleiro ou bater em blocos fixos.
-function colidiu(dx, dy) {
-  for (let bloco of peca.blocos) {
-    let novoX = peca.x + bloco.x + dx;
-    let novoY = peca.y + bloco.y + dy;
+  jogo.atualizar(deltaTime);
+  jogo.desenhar();
 
-    if (novoX < 0 || novoX >= COLUNAS || novoY >= LINHAS) {
-      return true;
+  // Quando acabam as vidas, salva a pontuacao e vai pro game over.
+  if (jogo.fimDeJogo) {
+    if (!pontuacaoSalva) {
+      salvarPontuacao();
+      pararMusica();
+      tocarSom("gameover");
+      pontuacaoSalva = true;
     }
-
-    if (novoY >= 0 && grade[novoY][novoX] !== null) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-// Grava a peça atual na grade como parte do cenário.
-function fixarPeca() {
-  for (let bloco of peca.blocos) {
-    let x = peca.x + bloco.x;
-    let y = peca.y + bloco.y;
-
-    if (y >= 0) {
-      grade[y][x] = peca.cor;
-    }
+    estado = "GAMEOVER";
   }
 }
 
-// Remove linhas completas e soma pontos.
-function limparLinhas() {
-  for (let y = LINHAS - 1; y >= 0; y--) {
-    let cheia = true;
+// ----- Tela de fim de jogo ----------------------------------
+function telaGameOver() {
+  background(jogo.corFundoAtual()[0], jogo.corFundoAtual()[1], jogo.corFundoAtual()[2]);
+  jogo.desenhar();
 
-    for (let x = 0; x < COLUNAS; x++) {
-      if (grade[y][x] === null) {
-        cheia = false;
-      }
-    }
+  // Cobertura escura por cima do tabuleiro.
+  noStroke();
+  fill(0, 0, 0, 180);
+  rect(0, 0, LARGURA, ALTURA);
 
-    if (cheia) {
-      grade.splice(y, 1);
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD);
+  fill(255, 90, 90);
+  textSize(44);
+  text("FIM DE JOGO", LARGURA / 2, 180);
 
-      let novaLinha = [];
-      for (let x = 0; x < COLUNAS; x++) {
-        novaLinha[x] = null;
-      }
+  fill(255);
+  textSize(22);
+  text("Pontos: " + jogo.pontos, LARGURA / 2, 250);
+  textSize(16);
+  fill(220);
+  text("Nivel " + jogo.nivel + "  |  Linhas " + jogo.linhasTotais, LARGURA / 2, 288);
 
-      grade.unshift(novaLinha);
-      pontos += 100;
-      y++;
-    }
-  }
+  fill(180, 220, 255);
+  textSize(15);
+  text("Modo: " + jogo.modoVidas + (jogo.modoVidas === 1 ? " vida" : " vidas"), LARGURA / 2, 320);
+
+  fill(0, 255, 136);
+  textSize(14);
+  text("Pontuacao enviada ao ranking!", LARGURA / 2, 356);
+
+  fill(180, 180, 220);
+  textStyle(NORMAL);
+  textSize(15);
+  text("Pressione ENTER para voltar ao menu", LARGURA / 2, ALTURA - 60);
 }
 
-// Trata os controles do teclado para iniciar, reiniciar, mover e rotacionar.
+// ============================================================
+//  ENTRADA (teclado e mouse)
+// ============================================================
 function keyPressed() {
-  if (!jogoIniciado) {
-    if (keyCode === ENTER || key === " ") {
-      jogoIniciado = true;
-      tempo = 0;
-    }
+  liberarAudio();
+
+  // Se o jogador esta digitando o nome, deixa o teclado para o input.
+  const ativo = document.activeElement;
+  if (ativo && ativo.tagName === "INPUT") {
     return;
   }
 
-  if (fimDeJogo) {
-    if (keyCode === ENTER || key === " ") {
-      // Reiniciar o jogo
-      jogoIniciado = false;
-      fimDeJogo = false;
-      pontos = 0;
-      tempo = 0;
-      intervalo = 500;
-      iniciarGrade();
-      novaPeca();
+  if (estado === "MENU") {
+    entradaMenu();
+  } else if (estado === "SOBRE" || estado === "RANKING") {
+    if (keyCode === ENTER || keyCode === ESCAPE || key === " ") {
+      estado = "MENU";
     }
-    return;
+  } else if (estado === "GAMEOVER") {
+    if (keyCode === ENTER || key === " ") {
+      estado = "MENU";
+    }
+  } else if (estado === "JOGANDO") {
+    entradaJogo();
   }
 
+  // Impede que as setas e o espaco rolem a pagina.
+  if ([LEFT_ARROW, RIGHT_ARROW, UP_ARROW, DOWN_ARROW, 32].includes(keyCode)) {
+    return false;
+  }
+}
+
+function entradaMenu() {
+  if (keyCode === UP_ARROW) {
+    opcaoSelecionada = (opcaoSelecionada + OPCOES_MENU.length - 1) % OPCOES_MENU.length;
+  } else if (keyCode === DOWN_ARROW) {
+    opcaoSelecionada = (opcaoSelecionada + 1) % OPCOES_MENU.length;
+  } else if (keyCode === ENTER || key === " ") {
+    ativarOpcaoMenu();
+  }
+}
+
+function entradaJogo() {
   if (keyCode === LEFT_ARROW) {
-    moverPeca(-1, 0);
+    jogo.mover(-1, 0);
+  } else if (keyCode === RIGHT_ARROW) {
+    jogo.mover(1, 0);
+  } else if (keyCode === DOWN_ARROW) {
+    jogo.mover(0, 1);
+  } else if (key.toUpperCase() === "W" || keyCode === UP_ARROW) {
+    jogo.rotacionar();
+  } else if (key === " ") {
+    jogo.descerTudo();
+  }
+}
+
+function mousePressed() {
+  liberarAudio();
+
+  if (estado === "MENU") {
+    for (let i = 0; i < OPCOES_MENU.length; i++) {
+      if (mouseEmCima(retanguloOpcao(i))) {
+        opcaoSelecionada = i;
+        ativarOpcaoMenu();
+      }
+    }
+  } else if (estado === "SOBRE" || estado === "RANKING" || estado === "GAMEOVER") {
+    estado = "MENU";
+  }
+}
+
+// ============================================================
+//  AUXILIARES
+// ============================================================
+function ativarOpcaoMenu() {
+  const opcao = OPCOES_MENU[opcaoSelecionada];
+  if (opcao === "JOGAR - 1 VIDA") {
+    iniciarJogo(1);
+  } else if (opcao === "JOGAR - 3 VIDAS") {
+    iniciarJogo(3);
+  } else if (opcao === "SOBRE") {
+    estado = "SOBRE";
+  } else if (opcao === "RANKING") {
+    estado = "RANKING";
+    carregarRanking();
+  }
+}
+
+// Le o nome digitado (sem espacos nas pontas).
+function nomeDoJogador() {
+  const campo = document.getElementById("nome");
+  return campo ? campo.value.trim() : "";
+}
+
+// Inicia uma partida no modo escolhido (1 ou 3 vidas).
+function iniciarJogo(vidas) {
+  // Nome e OBRIGATORIO: sem nome, nao deixa jogar.
+  if (nomeDoJogador() === "") {
+    mensagemMenu = "Digite seu nome para jogar!";
+    const campo = document.getElementById("nome");
+    if (campo) {
+      campo.focus();
+    }
+    return;
   }
 
-  if (keyCode === RIGHT_ARROW) {
-    moverPeca(1, 0);
+  mensagemMenu = "";
+  modoAtual = vidas;
+  jogo.reiniciar(vidas);
+  pontuacaoSalva = false;
+  tocarSom("inicio");
+
+  // A musica de fundo so comeca 2 segundos depois do inicio.
+  clearTimeout(temporizadorMusica);
+  temporizadorMusica = setTimeout(() => {
+    if (estado === "JOGANDO") { // nao toca se o jogador ja saiu/perdeu
+      iniciarMusica();
+    }
+  }, 2000);
+
+  estado = "JOGANDO";
+}
+
+// Retangulo (x, y, w, h) de uma opcao do menu.
+function retanguloOpcao(i) {
+  const largura = 240;
+  const altura = 46;
+  return {
+    x: (LARGURA - largura) / 2,
+    y: 240 + i * 60,
+    w: largura,
+    h: altura
+  };
+}
+
+function mouseEmCima(r) {
+  return mouseX > r.x && mouseX < r.x + r.w &&
+         mouseY > r.y && mouseY < r.y + r.h;
+}
+
+// ============================================================
+//  COMUNICACAO COM O BANCO (PHP + MySQL)
+// ============================================================
+
+// Busca o ranking de cada modo e guarda no objeto "ranking".
+function carregarRanking() {
+  rankingCarregado = false;
+  ranking = null;
+
+  fetch("api/ranking.php")
+    .then(resposta => resposta.json())
+    .then(dados => {
+      ranking = dados; // { "1": [...], "3": [...] }
+      rankingCarregado = true;
+    })
+    .catch(() => {
+      ranking = null; // sinaliza erro de conexao
+      rankingCarregado = true;
+    });
+}
+
+// Envia a pontuacao da partida para o banco (incluindo o modo).
+function salvarPontuacao() {
+  let nome = nomeDoJogador();
+  if (nome === "") {
+    nome = "JOGADOR"; // seguranca extra; o nome ja e exigido no menu
   }
 
-  if (keyCode === DOWN_ARROW) {
-    moverPeca(0, 1);
-  }
-  
-  // Rotação com W ou UP_ARROW
-  if (key.toUpperCase() === 'W' || keyCode === UP_ARROW) {
-    rotacionarPeca();
-  }
+  fetch("api/salvar_pontuacao.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      nome: nome,
+      pontos: jogo.pontos,
+      linhas: jogo.linhasTotais,
+      nivel: jogo.nivel,
+      modo: modoAtual
+    })
+  }).catch(() => {
+    // Sem conexao: o jogo continua normalmente.
+  });
 }

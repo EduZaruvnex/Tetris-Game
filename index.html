@@ -10,7 +10,7 @@
       padding: 0;
       box-sizing: border-box;
     }
-    
+
     body {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       display: flex;
@@ -21,14 +21,14 @@
       font-family: Arial, sans-serif;
       padding: 20px;
     }
-    
+
     h1 {
       color: #00d4ff;
       margin-bottom: 10px;
       text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
       letter-spacing: 3px;
     }
-    
+
     #container {
       display: flex;
       gap: 30px;
@@ -36,61 +36,161 @@
       justify-content: center;
       flex-wrap: wrap;
     }
-    
+
     canvas {
       border: 3px solid rgba(255, 255, 255, 0.3);
       border-radius: 8px;
-      background: #1a1a2e;
       display: block;
     }
-    
+
     .info {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(10px);
       padding: 20px;
       border-radius: 8px;
       color: white;
-      min-width: 200px;
+      min-width: 220px;
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
-    
-    .score {
-      font-size: 24px;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-    
-    .controls {
+
+    .info label {
+      display: block;
       font-size: 13px;
-      line-height: 1.8;
-      text-align: center;
+      margin-bottom: 6px;
       opacity: 0.9;
     }
-    
-    .controls p {
-      margin: 8px 0;
+
+    .info input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(0, 0, 0, 0.25);
+      color: white;
+      font-size: 15px;
+      margin-bottom: 20px;
+    }
+
+    .controls {
+      font-size: 13px;
+      line-height: 1.9;
+      opacity: 0.9;
+    }
+
+    .controls strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #00d4ff;
+    }
+
+    .audio {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      font-size: 13px;
+    }
+
+    .audio strong {
+      display: block;
+      margin-bottom: 10px;
+      color: #00d4ff;
+    }
+
+    .audio .linha {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .audio .linha input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #00d4ff;
+      cursor: pointer;
+    }
+
+    .audio .linha label {
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .audio input[type="range"] {
+      width: 100%;
+      accent-color: #00d4ff;
+      cursor: pointer;
+    }
+
+    .btn-menu {
+      width: 100%;
+      margin-top: 16px;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: #00d4ff;
+      color: #10101e;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-menu:hover {
+      background: #28e0ff;
     }
   </style>
 </head>
 <body>
   <h1>TETRIS</h1>
-  
+
   <div id="container">
     <div id="canvas-container"></div>
-    
+
     <div class="info">
-      <div class="score" id="score">Pontos: 0</div>
+      <label for="nome">Seu nome (obrigatorio):</label>
+      <input type="text" id="nome" maxlength="20" placeholder="Digite seu nome" required>
+
       <div class="controls">
-        <p><strong>Controles:</strong></p>
-        <p>← → Mover</p>
-        <p>↓ Descer</p>
-        <p>W ou ↑ Rotacionar</p>
-        <p>ENTER Começar</p>
+        <strong>Controles</strong>
+        <p>&#8592; &#8594; &nbsp;Mover</p>
+        <p>&#8595; &nbsp;Descer</p>
+        <p>W ou &#8593; &nbsp;Rotacionar</p>
+        <p>ESPACO &nbsp;Soltar de vez</p>
+        <p>ENTER &nbsp;Confirmar / Menu</p>
       </div>
+
+      <div class="audio">
+        <strong>Audio</strong>
+        <div class="linha">
+          <input type="checkbox" id="mutarMusica">
+          <label for="mutarMusica">Mutar musica</label>
+        </div>
+        <div class="linha">
+          <input type="checkbox" id="mutarTudo">
+          <label for="mutarTudo">Mutar todos os sons</label>
+        </div>
+        <label for="volume">Volume</label>
+        <input type="range" id="volume" min="0" max="100" value="50">
+      </div>
+
+      <button type="button" id="btnMenu" class="btn-menu">Voltar ao menu</button>
     </div>
   </div>
 
+  <!-- Biblioteca p5.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+
+  <!-- Dados do jogo -->
+  <script src="js/pecas.js"></script>
+  <script src="js/fases.js"></script>
+
+  <!-- Classes -->
+  <script src="js/Particula.js"></script>
+  <script src="js/Peca.js"></script>
+  <script src="js/Tabuleiro.js"></script>
+  <script src="js/Jogo.js"></script>
+
+  <!-- Sketch principal (precisa vir por ultimo) -->
   <script src="Base-Tetris.js"></script>
 </body>
 </html>
