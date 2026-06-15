@@ -16,7 +16,7 @@ Jogo do Tetris feito em **JavaScript (p5.js)** com placar online em **PHP + MySQ
 - **Progressão clara:** pontos, nível (fase), linhas e vidas exibidos no painel; a velocidade e a cor de fundo aumentam a cada fase.
 - **As 7 peças** clássicas do Tetris, com fila de próximas peças.
 - **Efeitos visuais:** partículas ao completar linhas e tremor de tela.
-- **Sons:** início de jogo, linha completada, fim de jogo e música ambiente em loop.
+- **Sons:** início de jogo, movimento e rotação das peças, queda rápida, linha completada, mudança de fase, perda de vida, fim de jogo e música ambiente em loop.
 - **Tela Sobre** com os participantes e **tela de Ranking** com as melhores pontuações vindas do banco de dados.
 
 ## Tecnologias
@@ -83,6 +83,11 @@ https://pixabay.com/pt/sound-effects/search/game/
 | Arquivo | Uso |
 |---------|-----|
 | `game-start.mp3` | Início da partida |
+| `movimento.wav` | Ao mover a peça para os lados |
+| `rotacao.wav` | Ao rotacionar a peça |
+| `queda.wav` | Ao soltar a peça de uma vez (queda rápida) |
 | `LinhaCompletada.mp3` | Ao completar uma linha |
+| `fase.wav` | Ao subir de fase |
+| `vida.wav` | Ao perder uma vida |
 | `Gameover.mp3` | Fim de jogo |
 | `SomAmbiente.mp3` | Música ambiente (tocada em loop durante o jogo) |
