@@ -77,6 +77,7 @@ class Jogo {
     } else {
       this.tabuleiro.reiniciar();
       this.mostrarMensagem("VOCE PERDEU 1 VIDA");
+      tocarSom("vida");
     }
   }
 
@@ -97,9 +98,12 @@ class Jogo {
 
   // "Hard drop": desce a peca de uma vez ate travar.
   descerTudo() {
+    let distancia = 0;
     while (this.mover(0, 1)) {
       this.pontos += 1; // pequeno bonus por descer rapido
+      distancia++;
     }
+    return distancia;
   }
 
   // Tenta girar a peca; so aplica se a rotacao nao colidir.
@@ -110,7 +114,9 @@ class Jogo {
     );
     if (!this.tabuleiro.colide(alvo)) {
       this.peca.blocos = candidato;
+      return true;
     }
+    return false;
   }
 
   // Fixa a peca, limpa linhas e gera os efeitos.
@@ -142,6 +148,7 @@ class Jogo {
     if (novoNivel > this.nivel) {
       this.nivel = novoNivel;
       this.mostrarMensagem("FASE " + this.nivel + "!");
+      tocarSom("fase");
     }
   }
 

@@ -42,12 +42,26 @@ const API_BASE = "https://tetris.clonacartao.online";
 
 // ----- Sons (HTML5 Audio) -----------------------------------
 const ARQUIVOS_SOM = {
-  inicio:   "Sons/game-start.mp3",
-  linha:    "Sons/LinhaCompletada.mp3",
-  gameover: "Sons/Gameover.mp3"
+  inicio:     "Sons/game-start.mp3",
+  linha:      "Sons/LinhaCompletada.mp3",
+  gameover:   "Sons/Gameover.mp3",
+  movimento:  "Sons/movimento.wav?v=3",
+  rotacao:    "Sons/rotacao.wav?v=3",
+  queda:      "Sons/queda.wav?v=3",
+  fase:       "Sons/fase.wav?v=3",
+  vida:       "Sons/vida.wav?v=3"
+};
+
+const VOLUMES_SOM = {
+  movimento: 0.8,
+  rotacao: 0.9,
+  queda: 1,
+  fase: 1,
+  vida: 1
 };
 
 let musicaAmbiente = null;      // Audio em loop (musica de fundo)
+const efeitosAudio = {};        // modelos pre-carregados dos efeitos
 let volumeGeral = 0.5;          // 0 a 1 (controlado pela barra de volume)
 let mutarMusica = false;        // muta so a musica de fundo
 let mutarTudo = false;          // muta todos os sons
@@ -65,18 +79,29 @@ function volumeEfeitos() {
 // Volume da musica: zero se "mutar tudo" ou "mutar musica" estiver ligado.
 // A musica fica um pouco mais baixa que os efeitos (60%).
 function volumeMusica() {
-  return (mutarTudo || mutarMusica) ? 0 : volumeGeral * 0.6;
+  return (mutarTudo || mutarMusica) ? 0 : volumeGeral * 0.4;
+}
+
+// Pre-carrega os efeitos para evitar atraso na primeira reproducao.
+function carregarEfeitosAudio() {
+  for (const [nome, caminho] of Object.entries(ARQUIVOS_SOM)) {
+    const audio = new Audio(caminho);
+    audio.preload = "auto";
+    audio.load();
+    efeitosAudio[nome] = audio;
+  }
 }
 
 // Toca um efeito sonoro. Cria um novo Audio a cada chamada para
 // permitir que os efeitos se sobreponham.
 function tocarSom(nome) {
-  const caminho = ARQUIVOS_SOM[nome];
-  if (!caminho) {
+  const modelo = efeitosAudio[nome];
+  if (!modelo) {
     return;
   }
-  const efeito = new Audio(caminho);
-  efeito.volume = volumeEfeitos();
+  const efeito = modelo.cloneNode();
+  const multiplicador = VOLUMES_SOM[nome] || 1;
+  efeito.volume = volumeEfeitos() * multiplicador;
   efeito.play().catch(() => {}); // ignora bloqueio de autoplay do navegador
 }
 
@@ -170,6 +195,7 @@ function setup() {
   canvas.parent("canvas-container");
   textFont("Arial");
   jogo = new Jogo();
+  carregarEfeitosAudio();
   configurarControlesAudio();
   configurarBotaoMenu();
 }
@@ -448,15 +474,23 @@ function entradaMenu() {
 
 function entradaJogo() {
   if (keyCode === LEFT_ARROW) {
-    jogo.mover(-1, 0);
+    if (jogo.mover(-1, 0)) {
+      tocarSom("movimento");
+    }
   } else if (keyCode === RIGHT_ARROW) {
-    jogo.mover(1, 0);
+    if (jogo.mover(1, 0)) {
+      tocarSom("movimento");
+    }
   } else if (keyCode === DOWN_ARROW) {
     jogo.mover(0, 1);
   } else if (key.toUpperCase() === "W" || keyCode === UP_ARROW) {
-    jogo.rotacionar();
+    if (jogo.rotacionar()) {
+      tocarSom("rotacao");
+    }
   } else if (key === " ") {
-    jogo.descerTudo();
+    if (jogo.descerTudo() > 0) {
+      tocarSom("queda");
+    }
   }
 }
 
